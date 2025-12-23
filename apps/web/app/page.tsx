@@ -119,31 +119,34 @@ export default function Home() {
                       </div>
 
                       <div className="flex-1 flex flex-col justify-center gap-2">
-                        <div className="flex items-center gap-3">
+                        <Link href={`/match/${match.external_id}`} className="flex items-center gap-3 group/team">
                           <Image src={match.team1_logo} alt={match.team1_name} width={20} height={20} className="object-contain" />
-                          <span className="text-white font-medium text-sm group-hover:text-green-400 transition-colors cursor-pointer">{match.team1_name}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
+                          <span className="text-white font-medium text-sm group-hover/team:text-green-400 transition-colors cursor-pointer">{match.team1_name}</span>
+                        </Link>
+                        <Link href={`/match/${match.external_id}`} className="flex items-center gap-3 group/team">
                           <Image src={match.team2_logo} alt={match.team2_name} width={20} height={20} className="object-contain" />
-                          <span className="text-white font-medium text-sm group-hover:text-green-400 transition-colors cursor-pointer">{match.team2_name}</span>
-                        </div>
+                          <span className="text-white font-medium text-sm group-hover/team:text-green-400 transition-colors cursor-pointer">{match.team2_name}</span>
+                        </Link>
                       </div>
 
                       <div className="hidden lg:flex items-center gap-2 mr-4">
-                        <div className="text-xs text-white/20 hover:text-white cursor-pointer transition-colors">
+                        <Link href={`/match/${match.external_id}`} className="text-xs text-white/20 hover:text-white cursor-pointer transition-colors">
                           <TrendingUp className="w-4 h-4" />
-                        </div>
+                        </Link>
                       </div>
 
                       <div className="flex gap-1 w-full md:w-auto">
-                        <OddsButton label="1" odd={match.odds_team1} team={match.team1_name} />
-                        <OddsButton label="N" odd={match.odds_draw || 3.50} team="Match Nul" />
-                        <OddsButton label="2" odd={match.odds_team2} team={match.team2_name} />
+                        <OddsButton label="1" odd={match.odds_team1} matchId={match.external_id} />
+                        <OddsButton label="N" odd={match.odds_draw || 0} matchId={match.external_id} />
+                        <OddsButton label="2" odd={match.odds_team2} matchId={match.external_id} />
                       </div>
 
-                      <div className="w-12 text-center text-xs text-white/30 hover:text-white cursor-pointer hidden md:block">
-                        +142
-                      </div>
+                      <Link
+                        href={`/match/${match.external_id}`}
+                        className="w-12 text-center text-xs text-green-400 hover:text-green-300 font-bold cursor-pointer hidden md:block"
+                      >
+                        PARIER
+                      </Link>
 
                     </div>
                   );
@@ -173,13 +176,25 @@ export default function Home() {
   );
 }
 
-function OddsButton({ label, odd, team }: { label: string, odd: number, team: string }) {
-  const formattedOdd = Number(odd).toFixed(2);
+function OddsButton({ label, odd, matchId }: { label: string, odd: number, matchId: number | string }) {
+  const hasOdds = odd > 0;
+  const formattedOdd = hasOdds ? Number(odd).toFixed(2) : 'N/A';
 
   return (
-    <button className="flex-1 md:w-24 bg-[#334155]/30 hover:bg-green-500 hover:text-[#0f172a] transition-all duration-200 rounded px-2 py-3 flex flex-col items-center justify-center gap-0.5 border border-white/5 group-bet">
-      <span className="text-[10px] text-white/40 group-bet-hover:text-[#0f172a]/70 font-bold">{label}</span>
-      <span className="text-green-400 group-hover:text-[#0f172a] font-bold font-mono text-sm">{formattedOdd}</span>
-    </button>
+    <Link
+      href={hasOdds ? `/match/${matchId}` : '#'}
+      className={`flex-1 md:w-24 transition-all duration-200 rounded px-2 py-3 flex flex-col items-center justify-center gap-0.5 border border-white/5 group-bet ${hasOdds
+          ? 'bg-[#334155]/30 hover:bg-green-500 hover:text-[#0f172a]'
+          : 'bg-white/5 opacity-50 cursor-not-allowed'
+        }`}
+      onClick={(e) => !hasOdds && e.preventDefault()}
+    >
+      <span className={`text-[10px] font-bold ${hasOdds ? 'text-white/40 group-bet-hover:text-[#0f172a]/70' : 'text-white/20'}`}>
+        {label}
+      </span>
+      <span className={`${hasOdds ? 'text-green-400 group-hover:text-[#0f172a]' : 'text-white/20'} font-bold font-mono text-sm`}>
+        {formattedOdd}
+      </span>
+    </Link>
   );
 }
