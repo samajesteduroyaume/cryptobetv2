@@ -23,9 +23,9 @@ export async function getUpcomingMatches(): Promise<Match[]> {
     const allMatches: Match[] = [];
     const dates: string[] = [];
 
-    console.log(`[SPORTS_API] Deep-Search (Key: ${API_KEY ? 'Present' : 'MISSING'})`);
+    console.log(`[SPORTS_API] 🚨 EMERGENCY FETCH START`);
 
-    // 1. MATCHS EN DIRECT (Priorité absolue)
+    // 1. MATCHS EN DIRECT (Priorité)
     try {
         const liveRes = await axios.get(`${FOOTBALL_URL}/fixtures`, {
             headers: { 'x-apisports-key': API_KEY },
@@ -33,7 +33,7 @@ export async function getUpcomingMatches(): Promise<Match[]> {
             timeout: 5000,
         });
 
-        if (liveRes.data?.response?.length > 0) {
+        if (liveRes.data?.response) {
             console.log(`[SPORTS_API] 📡 ${liveRes.data.response.length} LIVE matches found`);
             liveRes.data.response.forEach((fixture: any) => {
                 allMatches.push({
@@ -53,12 +53,11 @@ export async function getUpcomingMatches(): Promise<Match[]> {
             });
         }
     } catch (err) {
-        console.error("[SPORTS_API] Error Live:", err instanceof Error ? err.message : err);
+        console.error("[SPORTS_API] Live Error:", err instanceof Error ? err.message : err);
     }
 
-    // 2. RECHERCHE CIBLÉE PAR LIGUES MAJEURES (Pour avoir plus de cotes)
-    // On prend les 4 prochains jours
-    for (let i = 0; i < 4; i++) {
+    // 2. TOUS LES MATCHS D'AUJOURD'HUI ET DEMAIN (Sans filtre de ligue)
+    for (let i = 0; i < 3; i++) {
         const d = new Date();
         d.setDate(d.getDate() + i);
         dates.push(d.toISOString().split('T')[0]);
@@ -67,27 +66,30 @@ export async function getUpcomingMatches(): Promise<Match[]> {
     // Bulk /odds for dates (Best way to get many odds in few requests)
     for (const date of dates) {
         try {
-            console.log(`[SPORTS_API] 🔍 Date: ${date}...`);
-            const [fixturesRes, oddsRes] = await Promise.all([
+            console.log(`[SPORTS_API] Fetching date ${date}...`);
+            const [fixturesRes, oddsRes] = await Promise.allSettled([
                 axios.get(`${FOOTBALL_URL}/fixtures`, {
                     headers: { 'x-apisports-key': API_KEY },
                     params: { date },
-                    timeout: 5000,
+                    timeout: 8000,
                 }),
                 axios.get(`${FOOTBALL_URL}/odds`, {
                     headers: { 'x-apisports-key': API_KEY },
                     params: { date },
-                    timeout: 5000,
+                    timeout: 8000,
                 })
             ]);
 
+            const fixturesData = fixturesRes.status === 'fulfilled' ? fixturesRes.value.data?.response : [];
+            const oddsData = oddsRes.status === 'fulfilled' ? oddsRes.value.data?.response : [];
+
             const oddsMap = new Map();
-            if (oddsRes.data?.response) {
-                oddsRes.data.response.forEach((item: any) => {
+            if (oddsData) {
+                oddsData.forEach((item: any) => {
                     let bestValues = null;
                     // On cherche dans tous les bookmakers pour maximiser les chances
                     for (const bookie of (item.bookmakers || [])) {
-                        const market = bookie.bets?.find((b: any) => b.id === 1 || b.name === 'Match Winner');
+                        const market = bookie.bets?.find((b: any) => b.id === 1);
                         if (market) {
                             bestValues = market.values;
                             break;
@@ -97,14 +99,14 @@ export async function getUpcomingMatches(): Promise<Match[]> {
                 });
             }
 
-            const fixtures = (fixturesRes.data?.response || []).map((fixture: any) => {
+            const fixtures = (fixturesData || []).map((fixture: any) => {
                 if (!fixture.teams?.home || !fixture.teams?.away) return null;
 
                 const odds = oddsMap.get(fixture.fixture.id);
 
-                // Priorité aux ligues majeures OU aux matchs avec cotes
-                const isMajor = PRIORITY_LEAGUES.includes(fixture.league.id);
-                if (!odds && !isMajor) return null;
+                // Pour aujourd'hui (dates[0]), on montre TOUT, même sans cotes.
+                // Pour les jours suivants, on ne montre que ceux avec cotes pour ne pas polluer.
+                if (date !== dates[0] && !odds) return null;
 
                 return {
                     external_id: fixture.fixture.id,
@@ -123,11 +125,12 @@ export async function getUpcomingMatches(): Promise<Match[]> {
             }).filter(Boolean);
 
             allMatches.push(...fixtures);
-            console.log(`[SPORTS_API] ✅ ${fixtures.length} matches added for ${date}`);
+            console.log(`[SPORTS_API] Added ${fixtures.length} matches for ${date}`);
         } catch (err) {
-            console.error(`[SPORTS_API] Error ${date}:`, err);
+            console.error(`[SPORTS_API] Error processing ${date}:`, err);
         }
     }
 
+    console.log(`[SPORTS_API] 🚀 EMERGENCY FETCH END: ${allMatches.length} total matches`);
     return allMatches;
 }
