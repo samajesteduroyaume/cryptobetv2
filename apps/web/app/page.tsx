@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export default function Home() {
   const [liveEvents, setLiveEvents] = useState<Match[]>([]);
   const [isLoadingLive, setIsLoadingLive] = useState(true);
-  const [selectedSport, setSelectedSport] = useState('football');
+  const [selectedSport, setSelectedSport] = useState('all');
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -40,7 +40,7 @@ export default function Home() {
 
   const filteredMatches = selectedSport === 'all'
     ? liveEvents
-    : liveEvents.filter(match => match.sport_type === selectedSport || (selectedSport === 'football' && !match.sport_type));
+    : liveEvents.filter(match => match.sport_type === selectedSport);
 
   const matchesByLeague = filteredMatches.reduce((acc: Record<string, Match[]>, match: Match) => {
     const league = match.name || 'Autres';
@@ -50,6 +50,7 @@ export default function Home() {
   }, {});
 
   const sportsTabs = [
+    { id: 'all', label: 'Tous', icon: '🏆' },
     { id: 'football', label: 'Football', icon: '⚽' },
     { id: 'basketball', label: 'Basketball', icon: '🏀' },
     { id: 'tennis', label: 'Tennis', icon: '🎾' },
