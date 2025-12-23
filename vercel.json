@@ -2,7 +2,6 @@
     "version": 2,
     "framework": "nextjs",
     "buildCommand": "npm run build --workspace=@cryptobet/web",
-    "outputDirectory": "apps/web/.next",
     "installCommand": "npm install",
     "devCommand": "npm run dev",
     "regions": [
