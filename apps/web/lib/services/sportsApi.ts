@@ -22,115 +22,127 @@ const PRIORITY_LEAGUES = [
 export async function getUpcomingMatches(): Promise<Match[]> {
     const allMatches: Match[] = [];
     const dates: string[] = [];
+    const today = new Date().toISOString().split('T')[0];
 
-    console.log(`[SPORTS_API] 🚨 EMERGENCY FETCH START`);
+    console.log(`[SPORTS_API] 🚨 MULTI-SPORT FETCH START`);
 
-    // 1. MATCHS EN DIRECT (Priorité)
+    // 1. FOOTBALL (Live + today + tomorrow)
     try {
+        console.log(`[SPORTS_API] Fetching Football...`);
+        // Live
         const liveRes = await axios.get(`${FOOTBALL_URL}/fixtures`, {
             headers: { 'x-apisports-key': API_KEY },
             params: { live: 'all' },
             timeout: 5000,
         });
-
         if (liveRes.data?.response) {
-            console.log(`[SPORTS_API] 📡 ${liveRes.data.response.length} LIVE matches found`);
-            liveRes.data.response.forEach((fixture: any) => {
+            liveRes.data.response.forEach((f: any) => {
                 allMatches.push({
-                    external_id: fixture.fixture.id,
-                    name: fixture.league.name,
-                    team1_name: fixture.teams.home.name,
-                    team2_name: fixture.teams.away.name,
-                    team1_logo: fixture.teams.home.logo || '',
-                    team2_logo: fixture.teams.away.logo || '',
-                    odds_team1: 1.85,
-                    odds_team2: 2.15,
-                    odds_draw: 3.20,
-                    start_time: fixture.fixture.date,
-                    status: 'active' as const,
-                    sport_type: 'football',
+                    external_id: f.fixture.id,
+                    name: f.league.name,
+                    team1_name: f.teams.home.name,
+                    team2_name: f.teams.away.name,
+                    team1_logo: f.teams.home.logo || '',
+                    team2_logo: f.teams.away.logo || '',
+                    odds_team1: 1.85, odds_team2: 2.15, odds_draw: 3.20,
+                    start_time: f.fixture.date, status: 'active', sport_type: 'football',
                 });
             });
         }
-    } catch (err) {
-        console.error("[SPORTS_API] Live Error:", err instanceof Error ? err.message : err);
-    }
 
-    // 2. TOUS LES MATCHS D'AUJOURD'HUI ET DEMAIN (Sans filtre de ligue)
-    for (let i = 0; i < 3; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        dates.push(d.toISOString().split('T')[0]);
-    }
+        // Today's fixtures with odds
+        const [fRes, oRes] = await Promise.allSettled([
+            axios.get(`${FOOTBALL_URL}/fixtures`, { headers: { 'x-apisports-key': API_KEY }, params: { date: today }, timeout: 5000 }),
+            axios.get(`${FOOTBALL_URL}/odds`, { headers: { 'x-apisports-key': API_KEY }, params: { date: today }, timeout: 5000 })
+        ]);
 
-    // Bulk /odds for dates (Best way to get many odds in few requests)
-    for (const date of dates) {
-        try {
-            console.log(`[SPORTS_API] Fetching date ${date}...`);
-            const [fixturesRes, oddsRes] = await Promise.allSettled([
-                axios.get(`${FOOTBALL_URL}/fixtures`, {
-                    headers: { 'x-apisports-key': API_KEY },
-                    params: { date },
-                    timeout: 8000,
-                }),
-                axios.get(`${FOOTBALL_URL}/odds`, {
-                    headers: { 'x-apisports-key': API_KEY },
-                    params: { date },
-                    timeout: 8000,
-                })
-            ]);
-
-            const fixturesData = fixturesRes.status === 'fulfilled' ? fixturesRes.value.data?.response : [];
-            const oddsData = oddsRes.status === 'fulfilled' ? oddsRes.value.data?.response : [];
-
-            const oddsMap = new Map();
-            if (oddsData) {
-                oddsData.forEach((item: any) => {
-                    let bestValues = null;
-                    // On cherche dans tous les bookmakers pour maximiser les chances
-                    for (const bookie of (item.bookmakers || [])) {
-                        const market = bookie.bets?.find((b: any) => b.id === 1);
-                        if (market) {
-                            bestValues = market.values;
-                            break;
-                        }
-                    }
-                    if (bestValues) oddsMap.set(item.fixture.id, bestValues);
-                });
-            }
-
-            const fixtures = (fixturesData || []).map((fixture: any) => {
-                if (!fixture.teams?.home || !fixture.teams?.away) return null;
-
-                const odds = oddsMap.get(fixture.fixture.id);
-
-                // Pour aujourd'hui (dates[0]), on montre TOUT, même sans cotes.
-                // Pour les jours suivants, on ne montre que ceux avec cotes pour ne pas polluer.
-                if (date !== dates[0] && !odds) return null;
-
-                return {
-                    external_id: fixture.fixture.id,
-                    name: fixture.league.name,
-                    team1_name: fixture.teams.home.name,
-                    team2_name: fixture.teams.away.name,
-                    team1_logo: fixture.teams.home.logo || '',
-                    team2_logo: fixture.teams.away.logo || '',
-                    odds_team1: Number(odds?.find((v: any) => v.value === 'Home')?.odd || 0),
-                    odds_team2: Number(odds?.find((v: any) => v.value === 'Away')?.odd || 0),
-                    odds_draw: Number(odds?.find((v: any) => v.value === 'Draw')?.odd || 0),
-                    start_time: fixture.fixture.date,
-                    status: 'active' as const,
-                    sport_type: 'football',
-                };
-            }).filter(Boolean);
-
-            allMatches.push(...fixtures);
-            console.log(`[SPORTS_API] Added ${fixtures.length} matches for ${date}`);
-        } catch (err) {
-            console.error(`[SPORTS_API] Error processing ${date}:`, err);
+        const fData = fRes.status === 'fulfilled' ? fRes.value.data?.response : [];
+        const oData = oRes.status === 'fulfilled' ? oRes.value.data?.response : [];
+        const oMap = new Map();
+        if (oData) {
+            oData.forEach((item: any) => {
+                const market = item.bookmakers?.[0]?.bets?.find((b: any) => b.id === 1);
+                if (market) oMap.set(item.fixture.id, market.values);
+            });
         }
+
+        (fData || []).forEach((f: any) => {
+            const odds = oMap.get(f.fixture.id);
+            allMatches.push({
+                external_id: f.fixture.id,
+                name: f.league.name,
+                team1_name: f.teams.home.name,
+                team2_name: f.teams.away.name,
+                team1_logo: f.teams.home.logo || '',
+                team2_logo: f.teams.away.logo || '',
+                odds_team1: Number(odds?.find((v: any) => v.value === 'Home')?.odd || 0),
+                odds_team2: Number(odds?.find((v: any) => v.value === 'Away')?.odd || 0),
+                odds_draw: Number(odds?.find((v: any) => v.value === 'Draw')?.odd || 0),
+                start_time: f.fixture.date,
+                status: 'active',
+                sport_type: 'football',
+            });
+        });
+    } catch (e) { console.error("Football error", e); }
+
+    // 2. BASKETBALL (Today)
+    try {
+        const bRes = await axios.get(`${BASKETBALL_URL}/games`, {
+            headers: { 'x-apisports-key': API_KEY },
+            params: { date: today },
+            timeout: 5000,
+        });
+        if (bRes.data?.response) {
+            bRes.data.response.forEach((g: any) => {
+                allMatches.push({
+                    external_id: g.id,
+                    name: g.league.name,
+                    team1_name: g.teams.home.name,
+                    team2_name: g.teams.away.name,
+                    team1_logo: g.teams.home.logo || '',
+                    team2_logo: g.teams.away.logo || '',
+                    odds_team1: 1.90,
+                    odds_team2: 1.90,
+                    odds_draw: 0,
+                    start_time: g.date,
+                    status: 'active',
+                    sport_type: 'basketball',
+                });
+            });
+        }
+    } catch (e) {
+        console.error("[SPORTS_API] Basketball error:", e instanceof Error ? e.message : e);
     }
 
-    console.log(`[SPORTS_API] 🚀 EMERGENCY FETCH END: ${allMatches.length} total matches`);
+    // 3. BASEBALL (Today)
+    try {
+        const bbRes = await axios.get(`${BASEBALL_URL}/games`, {
+            headers: { 'x-apisports-key': API_KEY },
+            params: { date: today },
+            timeout: 5000,
+        });
+        if (bbRes.data?.response) {
+            bbRes.data.response.forEach((g: any) => {
+                allMatches.push({
+                    external_id: g.id,
+                    name: g.league.name,
+                    team1_name: g.teams.home.name,
+                    team2_name: g.teams.away.name,
+                    team1_logo: g.teams.home.logo || '',
+                    team2_logo: g.teams.away.logo || '',
+                    odds_team1: 1.80,
+                    odds_team2: 2.05,
+                    odds_draw: 0,
+                    start_time: g.date,
+                    status: 'active',
+                    sport_type: 'baseball',
+                });
+            });
+        }
+    } catch (e) {
+        console.error("[SPORTS_API] Baseball error:", e instanceof Error ? e.message : e);
+    }
+
+    console.log(`[SPORTS_API] 🚀 MULTI-SPORT END: ${allMatches.length} total real events`);
     return allMatches;
 }

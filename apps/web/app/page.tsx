@@ -53,6 +53,7 @@ export default function Home() {
     { id: 'all', label: 'Tous', icon: '🏆' },
     { id: 'football', label: 'Football', icon: '⚽' },
     { id: 'basketball', label: 'Basketball', icon: '🏀' },
+    { id: 'baseball', label: 'Baseball', icon: '⚾' },
     { id: 'tennis', label: 'Tennis', icon: '🎾' },
     { id: 'racing', label: 'Auto-Moto', icon: '🏎️' },
   ];
@@ -184,8 +185,8 @@ function OddsButton({ label, odd, matchId }: { label: string, odd: number, match
     <Link
       href={hasOdds ? `/match/${matchId}` : '#'}
       className={`flex-1 md:w-24 transition-all duration-200 rounded px-2 py-3 flex flex-col items-center justify-center gap-0.5 border border-white/5 group-bet ${hasOdds
-          ? 'bg-[#334155]/30 hover:bg-green-500 hover:text-[#0f172a]'
-          : 'bg-white/5 opacity-50 cursor-not-allowed'
+        ? 'bg-[#334155]/30 hover:bg-green-500 hover:text-[#0f172a]'
+        : 'bg-white/5 opacity-50 cursor-not-allowed'
         }`}
       onClick={(e) => !hasOdds && e.preventDefault()}
     >
