@@ -11,41 +11,42 @@ export async function getUpcomingMatches(): Promise<Match[]> {
     const allMatches: Match[] = [];
     const dates: string[] = [];
 
-    // 1. RÉCUPÉRER LES MATCHS EN DIRECT (LIVE)
+    console.log(`[SPORTS_API] Initialisation de la recherche (Key: ${API_KEY ? 'Présente' : 'MANQUANTE'})`);
+
+    // 1. MATCHS EN DIRECT
     try {
         const liveRes = await axios.get(`${FOOTBALL_URL}/fixtures`, {
             headers: { 'x-apisports-key': API_KEY },
             params: { live: 'all' },
-            timeout: 5000,
+            timeout: 7000,
         });
 
-        if (liveRes.data?.response) {
-            console.log(`📡 ${liveRes.data.results} matchs en direct trouvés`);
-            for (const fixture of liveRes.data.response) {
-                // Pour le live, les cotes sont plus difficiles à avoir en masse, 
-                // on essaiera de les avoir lors du clic sur le match ou via un second appel si besoin.
-                // Pour l'instant, on ajoute le match avec des cotes par défaut si non trouvées.
-                allMatches.push({
-                    external_id: fixture.fixture.id,
-                    name: fixture.league.name,
-                    team1_name: fixture.teams.home.name,
-                    team2_name: fixture.teams.away.name,
-                    team1_logo: fixture.teams.home.logo,
-                    team2_logo: fixture.teams.away.logo,
-                    odds_team1: 1.50, // Temporaire pour les lives
-                    odds_team2: 2.50,
-                    odds_draw: 3.00,
-                    start_time: fixture.fixture.date,
-                    status: 'active' as const,
-                    sport_type: 'football',
-                });
-            }
+        if (liveRes.data?.response?.length > 0) {
+            console.log(`[SPORTS_API] 📡 ${liveRes.data.response.length} matchs LIVE trouvés`);
+            liveRes.data.response.forEach((fixture: any) => {
+                if (fixture.teams?.home && fixture.teams?.away) {
+                    allMatches.push({
+                        external_id: fixture.fixture.id,
+                        name: fixture.league.name || 'En Direct',
+                        team1_name: fixture.teams.home.name,
+                        team2_name: fixture.teams.away.name,
+                        team1_logo: fixture.teams.home.logo || '',
+                        team2_logo: fixture.teams.away.logo || '',
+                        odds_team1: 1.50,
+                        odds_team2: 2.50,
+                        odds_draw: 3.00,
+                        start_time: fixture.fixture.date,
+                        status: 'active' as const,
+                        sport_type: 'football',
+                    });
+                }
+            });
         }
     } catch (err) {
-        console.error("Erreur Live:", err instanceof Error ? err.message : 'Unknown');
+        console.error("[SPORTS_API] Erreur Live:", err instanceof Error ? err.message : err);
     }
 
-    // 2. RÉCUPÉRER LES MATCHS À VENIR (7 JOURS)
+    // 2. MATCHS FUTURS (7 JOURS)
     for (let i = 0; i < 7; i++) {
         const d = new Date();
         d.setDate(d.getDate() + i);
@@ -54,75 +55,80 @@ export async function getUpcomingMatches(): Promise<Match[]> {
 
     for (const date of dates) {
         try {
-            console.log(`🔍 Recherche des matchs pour la date: ${date}`);
-            const [fixturesRes, oddsRes] = await Promise.all([
+            console.log(`[SPORTS_API] 🔍 Date: ${date}...`);
+            const results = await Promise.allSettled([
                 axios.get(`${FOOTBALL_URL}/fixtures`, {
                     headers: { 'x-apisports-key': API_KEY },
                     params: { date },
-                    timeout: 5000,
+                    timeout: 8000,
                 }),
                 axios.get(`${FOOTBALL_URL}/odds`, {
                     headers: { 'x-apisports-key': API_KEY },
                     params: { date },
-                    timeout: 5000,
+                    timeout: 8000,
                 })
             ]);
 
-            console.log(`- Date ${date}: ${fixturesRes.data?.results || 0} fixtures, ${oddsRes.data?.results || 0} odds sets.`);
+            const fixturesRes = results[0].status === 'fulfilled' ? results[0].value.data : null;
+            const oddsRes = results[1].status === 'fulfilled' ? results[1].value.data : null;
 
-            if (fixturesRes.data?.response) {
-                const oddsMap = new Map();
-                if (oddsRes.data?.response) {
-                    oddsRes.data.response.forEach((item: any) => {
-                        // Chercher le Match Winner (id 1) dans TOUS les bookmakers
-                        let bestValues = null;
+            if (!fixturesRes) {
+                console.warn(`[SPORTS_API] ⚠️ Fixtures indisponibles pour le ${date}`);
+                continue;
+            }
+
+            const oddsMap = new Map();
+            if (oddsRes?.response) {
+                oddsRes.response.forEach((item: any) => {
+                    let bestValues = null;
+                    if (item.bookmakers) {
                         for (const bookie of item.bookmakers) {
-                            const market = bookie.bets.find((b: any) => b.id === 1);
+                            const market = bookie.bets?.find((b: any) => b.id === 1);
                             if (market) {
                                 bestValues = market.values;
-                                break; // On prend le premier trouvé
+                                break;
                             }
                         }
-                        if (bestValues) {
-                            oddsMap.set(item.fixture.id, bestValues);
-                        }
-                    });
-                }
-
-                const fixtures = fixturesRes.data.response.map((fixture: any) => {
-                    const odds = oddsMap.get(fixture.fixture.id);
-
-                    // Si on n'a pas de cotes réelles, et que c'est une ligue majeure, on peut tenter d'en "estimer"
-                    // mais l'utilisateur a dit "pas de fictif". On va donc n'afficher que ceux avec cotes
-                    // OU afficher avec cotes=0 pour indiquer l'indisponibilité.
-                    if (!odds && i > 0) return null; // On ignore les futurs sans cotes pour l'instant
-
-                    return {
-                        external_id: fixture.fixture.id,
-                        name: fixture.league.name,
-                        team1_name: fixture.teams.home.name,
-                        team2_name: fixture.teams.away.name,
-                        team1_logo: fixture.teams.home.logo,
-                        team2_logo: fixture.teams.away.logo,
-                        odds_team1: Number(odds?.find((v: any) => v.value === 'Home')?.odd || 0),
-                        odds_team2: Number(odds?.find((v: any) => v.value === 'Away')?.odd || 0),
-                        odds_draw: Number(odds?.find((v: any) => v.value === 'Draw')?.odd || 0),
-                        start_time: fixture.fixture.date,
-                        status: 'active' as const,
-                        sport_type: 'football',
-                    };
-                }).filter(Boolean);
-
-                allMatches.push(...fixtures);
+                    }
+                    if (bestValues) {
+                        oddsMap.set(item.fixture.id, bestValues);
+                    }
+                });
             }
+
+            const fixtures = fixturesRes.response.map((fixture: any) => {
+                if (!fixture.teams?.home || !fixture.teams?.away) return null;
+
+                const odds = oddsMap.get(fixture.fixture.id);
+                // On n'affiche que ceux qui ont des cotes (sauf aujourd'hui pour voir quelque chose)
+                if (!odds && date !== dates[0]) return null;
+
+                return {
+                    external_id: fixture.fixture.id,
+                    name: fixture.league?.name || 'Football',
+                    team1_name: fixture.teams.home.name,
+                    team2_name: fixture.teams.away.name,
+                    team1_logo: fixture.teams.home.logo || '',
+                    team2_logo: fixture.teams.away.logo || '',
+                    odds_team1: Number(odds?.find((v: any) => v.value === 'Home')?.odd || 0),
+                    odds_team2: Number(odds?.find((v: any) => v.value === 'Away')?.odd || 0),
+                    odds_draw: Number(odds?.find((v: any) => v.value === 'Draw')?.odd || 0),
+                    start_time: fixture.fixture.date,
+                    status: 'active' as const,
+                    sport_type: 'football',
+                };
+            }).filter(Boolean);
+
+            allMatches.push(...fixtures);
+            console.log(`[SPORTS_API] ✅ ${fixtures.length} matchs ajoutés pour le ${date}`);
         } catch (err) {
-            console.error(`Erreur Football ${date}:`, err instanceof Error ? err.message : 'Unknown');
+            console.error(`[SPORTS_API] Erreur critique le ${date}:`, err);
         }
     }
 
-    // Ajouter le Basket/Base uniquement si on a des matchs
-    // (Logique similaire à ajouter si besoin)
+    if (allMatches.length === 0) {
+        console.warn("[SPORTS_API] ❌ AUCUN MATCH TROUVÉ. Vérifiez votre clé API ou la date.");
+    }
 
-    console.log(`✅ TOTAL: ${allMatches.length} matchs réels chargés`);
     return allMatches;
 }

@@ -4,17 +4,19 @@ import { addMatch, getAllMatches } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        // Récupérer les matchs existants
-        let matches = await getAllMatches();
+        console.log(`[API_ROUTE] Appel /api/matches (Client: ${request.headers.get('user-agent')?.slice(0, 20)}...)`);
 
-        // Si pas de matchs ou trop peu, les récupérer depuis l'API
+        let matches = await getAllMatches();
+        console.log(`[API_ROUTE] Matchs en mémoire: ${matches.length}`);
+
         if (matches.length < 5) {
+            console.log(`[API_ROUTE] 🔄 Trop peu de matchs, tentative de rafraîchissement API...`);
             const apiMatches = await getUpcomingMatches();
+            console.log(`[API_ROUTE] 📥 Reçu de l'API: ${apiMatches.length} matchs`);
+
             if (apiMatches.length > 0) {
-                // On vide l'ancien store pour éviter les doublons ou donner la priorité au nouveau
-                // Dans db.ts on pourrait avoir un clearMatches, sinon on fait avec les moyens du bord
                 for (const match of apiMatches) {
                     await addMatch(match);
                 }
@@ -22,8 +24,15 @@ export async function GET() {
             }
         }
 
-        return NextResponse.json({ matches });
-    } catch (error: unknown) {
+        return NextResponse.json({
+            matches,
+            _debug: {
+                timestamp: new Date().toISOString(),
+                count: matches.length,
+                env_key_present: !!process.env.API_SPORTS_KEY
+            }
+        });
+    } catch (error: any) {
         console.error('Error in /api/matches:', error);
         const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la récupération des matchs';
         return NextResponse.json({ error: errorMessage }, { status: 500 });
