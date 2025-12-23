@@ -1,0 +1,18 @@
+{
+  "name": "cryptobetv2",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --workspace=@cryptobet/web",
+    "build": "npm run build --workspace=@cryptobet/web",
+    "test": "npm run test --workspace=@cryptobet/contracts",
+    "deploy": "vercel --prod"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/contracts"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
