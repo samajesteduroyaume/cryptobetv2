@@ -9,13 +9,17 @@ export async function GET() {
         // Récupérer les matchs existants
         let matches = await getAllMatches();
 
-        // Si pas de matchs, les récupérer depuis l'API
-        if (matches.length === 0) {
+        // Si pas de matchs ou trop peu, les récupérer depuis l'API
+        if (matches.length < 5) {
             const apiMatches = await getUpcomingMatches();
-            for (const match of apiMatches) {
-                await addMatch(match);
+            if (apiMatches.length > 0) {
+                // On vide l'ancien store pour éviter les doublons ou donner la priorité au nouveau
+                // Dans db.ts on pourrait avoir un clearMatches, sinon on fait avec les moyens du bord
+                for (const match of apiMatches) {
+                    await addMatch(match);
+                }
+                matches = await getAllMatches();
             }
-            matches = await getAllMatches();
         }
 
         return NextResponse.json({ matches });

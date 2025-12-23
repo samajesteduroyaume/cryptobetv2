@@ -4,11 +4,12 @@ import { Match, Bet } from '@/src/types';
 let matchesStore: Match[] = [];
 let betsStore: Bet[] = [];
 
-export async function addMatch(match: Omit<Match, 'id'>): Promise<number> {
-  const id = matchesStore.length + 1;
-  const matchWithId = { ...match, external_id: id };
-  matchesStore.push(matchWithId as Match);
-  return id;
+export async function addMatch(match: Match): Promise<number> {
+  const exists = matchesStore.find(m => m.external_id === match.external_id);
+  if (exists) return Number(match.external_id);
+
+  matchesStore.push(match);
+  return Number(match.external_id);
 }
 
 export async function getAllMatches(): Promise<Match[]> {
