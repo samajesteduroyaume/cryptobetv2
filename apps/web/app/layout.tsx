@@ -24,9 +24,9 @@ export default function RootLayout({
         <ClientOnly>
           <Web3Provider>
             <SideBar />
-            <div className={'flex flex-col w-full'}>
+            <div className={'flex flex-col w-full min-h-screen bg-background'}>
               <TopBar />
-              <div className='content  bg-background w-full h-[100%]  pl-[25rem] pt-[12.5rem]'>
+              <div className='content w-full h-full pl-80 pt-24'>
                 {children}
               </div>
             </div>

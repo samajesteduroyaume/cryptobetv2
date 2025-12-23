@@ -15,23 +15,26 @@ const SideBar = () => {
   const pathname = usePathname();
 
   return (
-    <div className='z-50 w-72 h-screen fixed left-0 top-0 flex flex-col border-r border-white/5 bg-[#0f172a]/80 backdrop-blur-xl'>
+    <div className='z-50 w-80 h-screen fixed left-0 top-0 flex flex-col border-r border-white/5 bg-[#0f172a]/95 backdrop-blur-3xl'>
       {/* Logo Area */}
-      <div className='p-8'>
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className='w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-300'>
-            <span className='text-white font-black text-xl'>C</span>
+      <div className='p-10'>
+        <Link href="/" className="flex items-center gap-4 group">
+          <div className='w-12 h-12 bg-gradient-to-br from-green-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-green-500/20 group-hover:rotate-6 transition-all duration-500'>
+            <TrendingUp className="w-7 h-7 text-[#0f172a]" />
           </div>
-          <span className='text-white text-2xl font-bold tracking-tight group-hover:text-blue-400 transition-colors'>
-            CryptoBet
-          </span>
+          <div className="flex flex-col">
+            <span className='text-white text-2xl font-black italic tracking-tighter group-hover:text-green-400 transition-colors uppercase'>
+              CRYPTOBET
+            </span>
+            <span className="text-[10px] text-orange-500 font-black tracking-[0.4em]">VERSION 2.0</span>
+          </div>
         </Link>
       </div>
 
       {/* Navigation */}
-      <div className='px-4 flex-1 overflow-y-auto py-6'>
-        <p className='text-white/40 text-xs font-bold uppercase tracking-wider mb-4 px-4'>Menu Principal</p>
-        <ul className='space-y-1'>
+      <div className='px-6 flex-1 overflow-y-auto py-8'>
+        <p className='text-white/20 text-[10px] font-black uppercase tracking-[0.3em] mb-8 px-4'>Plateforme</p>
+        <ul className='space-y-3'>
           {MENU_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -39,22 +42,22 @@ const SideBar = () => {
                 <Link
                   href={item.href}
                   className={`
-                    relative flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group
+                    relative flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-500 group overflow-hidden
                     ${isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-[#0f172a] shadow-xl shadow-green-500/10'
+                      : 'text-white/40 hover:bg-white/[0.03] hover:text-white'
                     }
                   `}
                 >
-                  <div className='flex items-center gap-3'>
-                    <div className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                  <div className='flex items-center gap-4 z-10'>
+                    <div className={`transition-all duration-500 ${isActive ? 'scale-110 rotate-3' : 'group-hover:scale-110'}`}>
                       {item.icon}
                     </div>
-                    <span className='font-medium text-sm'>{item.name}</span>
+                    <span className='font-black text-xs uppercase tracking-widest'>{item.name}</span>
                   </div>
 
                   {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-300 rounded-r-full shadow-[0_0_10px_rgba(147,197,253,0.5)]" />
+                    <div className="absolute left-0 top-0 h-full w-full bg-white/10 opacity-50 skew-x-12 translate-x-32" />
                   )}
                 </Link>
               </li>
@@ -62,31 +65,23 @@ const SideBar = () => {
           })}
         </ul>
 
-        {/* Categories Section (Visual only for now) */}
-        <p className='text-white/40 text-xs font-bold uppercase tracking-wider mt-8 mb-4 px-4'>Sports Populaires</p>
-        <ul className='space-y-1'>
-          {['Football', 'Basketball', 'Tennis', 'Esports'].map((sport) => (
-            <li key={sport}>
-              <button className='w-full text-left px-4 py-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-all text-sm font-medium'>
-                {sport}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {/* Action / Help Section */}
+        <div className="mt-12 px-4">
+          <div className="glass rounded-3xl p-6 border-white/[0.02]">
+            <p className="text-white/20 text-[10px] font-black uppercase tracking-widest mb-4">Support</p>
+            <button className="w-full text-left flex items-center gap-3 text-white/60 hover:text-orange-500 transition-colors py-2">
+              <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
+              <span className="text-xs font-bold uppercase tracking-widest">Aide Directe</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Footer / Wallet Info */}
-      <div className='p-4 mt-auto border-t border-white/5 bg-black/20'>
-        <div className='bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/20 rounded-xl p-4'>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Trophy className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className='text-white font-bold text-sm'>Paris Décentralisés</p>
-              <p className='text-white/40 text-xs'>Sécurisé par Smart Contract</p>
-            </div>
-          </div>
+      <div className='p-8 mt-auto border-t border-white/5 bg-black/40'>
+        <div className='bg-gradient-to-br from-green-500/20 to-orange-500/5 border border-white/5 rounded-[1.5rem] p-6 text-center ring-1 ring-white/5'>
+          <p className='text-white font-black text-[10px] uppercase tracking-widest mb-1 italic'>Powered by</p>
+          <p className='text-green-500 text-sm font-black tracking-tighter'>OPTIMISM NETWORK</p>
         </div>
       </div>
     </div>

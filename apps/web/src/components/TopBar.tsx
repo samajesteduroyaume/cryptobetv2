@@ -6,32 +6,43 @@ import { Bell, Search } from "lucide-react";
 
 const TopBar = () => {
   return (
-    <div className="fixed top-0 right-0 left-72 z-40 h-20 px-8 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+    <div className="fixed top-0 right-0 left-80 z-40 h-24 px-10 flex justify-between items-center bg-[#0f172a]/90 backdrop-blur-3xl border-b border-white/[0.03] transition-all duration-300">
       {/* Search Bar (Visual) */}
-      <div className="relative group w-96 hidden md:block">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-blue-400 transition-colors">
+      <div className="relative group w-[500px] hidden lg:block">
+        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-green-500 transition-colors">
           <Search className="w-5 h-5" />
         </div>
         <input
           type="text"
-          placeholder="Rechercher un match, une équipe..."
-          className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:bg-white/10 focus:border-blue-500/50 transition-all placeholder:text-white/30"
+          placeholder="RECHERCHER UN ÉVÉNEMENT..."
+          className="w-full glass bg-white/[0.02] border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-xs font-black tracking-widest text-white focus:outline-none focus:bg-white/[0.05] focus:border-green-500/50 focus:ring-4 focus:ring-green-500/5 transition-all placeholder:text-white/20"
         />
       </div>
 
-      <div className="flex items-center gap-4 md:gap-6 ml-auto">
+      <div className="flex items-center gap-6 md:gap-8 ml-auto">
         {/* Notifications */}
-        <button className="relative p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[#0f172a]"></span>
+        <button className="relative group p-3 glass text-white/40 hover:text-orange-500 hover:border-orange-500/50 rounded-2xl transition-all duration-500">
+          <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-[#0f172a] shadow-lg shadow-orange-500/50"></span>
         </button>
 
         {/* Divider */}
-        <div className="w-px h-8 bg-white/10 hidden sm:block"></div>
+        <div className="w-px h-10 bg-white/5 hidden sm:block"></div>
 
         {/* Wallet Button */}
         <div className="connect-button-wrapper">
-          <ConnectKitButton />
+          <ConnectKitButton.Custom>
+            {({ isConnected, show, truncatedAddress, ensName }) => {
+              return (
+                <button
+                  onClick={show}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-[#0f172a] px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:translate-y-[-2px] active:translate-y-[1px] shadow-xl shadow-green-500/10 transition-all"
+                >
+                  {isConnected ? ensName ?? truncatedAddress : "Connexion Wallet"}
+                </button>
+              );
+            }}
+          </ConnectKitButton.Custom>
         </div>
       </div>
     </div>

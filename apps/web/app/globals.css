@@ -4,30 +4,26 @@
 
 @layer base {
   :root {
-    /* Deep Space Blue Theme */
-    --background: 222 47% 11%;
-    /* #0f172a */
+    /* Deep Emerald/Orange Theme */
+    --background: 222 47% 4%; /* Darker black */
     --foreground: 210 40% 98%;
-    /* #f8fafc */
 
-    --card: 222 47% 11%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 11%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
-    /* #3b82f6 Blue */
+    --primary: 142 71% 45%; /* Green */
     --primary-foreground: 222 47% 11%;
 
-    --secondary: 217 33% 17%;
-    /* Darker Blue */
+    --secondary: 25 95% 53%; /* Orange */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 217 33% 12%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 17%;
+    --accent: 25 95% 53%; /* Orange */
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84% 60%;
@@ -35,34 +31,34 @@
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --ring: 142 71% 45%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
   }
 }
 
 @layer base {
   * {
-    @apply border-white/10;
+    @apply border-white/5;
   }
 
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image:
-      radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+      radial-gradient(circle at 5% 20%, rgba(34, 197, 94, 0.12), transparent 30%),
+      radial-gradient(circle at 95% 80%, rgba(249, 115, 22, 0.1), transparent 30%);
     background-attachment: fixed;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-xl;
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10 shadow-2xl;
   }
 
   .glass-hover {
-    @apply hover:bg-white/10 hover:border-white/20 transition-all duration-300;
+    @apply hover:bg-white/[0.06] hover:border-white/20 transition-all duration-500;
   }
 
   .text-balance {
@@ -70,7 +66,11 @@
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-green-400 via-emerald-400 to-orange-400;
+  }
+
+  .text-orange-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-amber-500;
   }
 }
 
